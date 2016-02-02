@@ -3,25 +3,25 @@
 import os
 import sys
 
-def ask_dir(word):
-	input_dirname = raw_input(word+"\n")
+def ask_dir(tip):
+	input_dirname = raw_input(tip+"\n").strip()
 	if os.path.isdir(input_dirname) == True:
-		print (input_dirname+"的行数是"+str(get_line_num(input_dirname)))
+		return input_dirname
 	else:
-		ask_dir("找不到这个目录")
+		ask_dir("找不到这个目录，重新输入：")
 
 
-def get_line_num(dirname):
+def get_line_num(dirname,fileType):
 	listfile=os.listdir(dirname)
 	linenum = 0
 	for filename in listfile:
-		if filename[-4:]=='.php':
+		if filename[-4:]=='.'+fileType:
 			out = open(dirname + os.path.sep + filename,'r')
 			for line in out:
-				linenum = linenum+1
+				if line.strip() != "":
+					linenum = linenum+1
 		elif os.path.isdir(dirname+ os.path.sep + filename) == True:
-			linenum += get_line_num(dirname+ os.path.sep+ filename)
-			print(dirname+ os.path.sep + filename)
+			linenum += get_line_num(dirname+ os.path.sep+ filename,fileType)
 	return linenum
 
 class UnicodeStreamFilter:
@@ -36,9 +36,17 @@ class UnicodeStreamFilter:
 		s = s.encode(self.encode_to, self.errors).decode(self.encode_to)
 		self.target.write(s)
 
-if sys.stdout.encoding == 'cp936':
-	sys.stdout = UnicodeStreamFilter(sys.stdout)
+def main():
+	if sys.stdout.encoding == 'cp936':
+		sys.stdout = UnicodeStreamFilter(sys.stdout)
+	while True:
+		dir = ask_dir("请输入目录地址")
+		fileType = raw_input("请输入文件类型\n")
+		print (dir+"内 "+fileType+" 代码行数是"+str(get_line_num(dir,fileType)))
+		q = raw_input("\nq键退出，任意键继续")
+		if q == "q":
+			break
+	return
 
 if __name__ == '__main__' :
-	ask_dir("请输入目录地址")
-	raw_input("\n退出")
+	main()
