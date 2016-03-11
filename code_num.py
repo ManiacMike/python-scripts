@@ -15,7 +15,8 @@ def get_line_num(dirname,fileType):
 	listfile=os.listdir(dirname)
 	linenum = 0
 	for filename in listfile:
-		if filename[-4:]=='.'+fileType:
+		fileTypeLength = len(fileType)+1
+		if filename[-1*fileTypeLength:]=='.'+fileType:
 			out = open(dirname + os.path.sep + filename,'r')
 			for line in out:
 				if line.strip() != "":
