@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # coding=utf-8
 
+### 豆瓣小组抢楼机器人
+
 __author__ = "maniacmike"
 
 import sys
@@ -87,6 +89,13 @@ def postDoubanComment(ck,content,tid):
     }
     _post(commentUrl, params)
 
+def testLogin():
+	mineUrl = "https://www.douban.com/mine/"
+	unLoginurlRedirect = "https://www.douban.com/accounts/login?redir=https%3A//www.douban.com/mine/"
+	request = urllib2.Request(mineUrl)
+	content = urllib2.urlopen(request).geturl()
+	return unLoginurlRedirect != content
+
 def _transcoding(data):
 	if not data: return data
 	result = None
@@ -164,6 +173,11 @@ def main():
     email = raw_input("[*] 请输入邮箱\n")
     password = raw_input("[*] 请输入密码\n")
     loginDouban(email,password)
+    if testLogin() == True:
+        print('[*] 登陆成功')
+    else:
+        print('[*] 登陆失败')
+        exit()
     listenProcess = multiprocessing.Process(target=listenTopic)
     listenProcess.start()
 
