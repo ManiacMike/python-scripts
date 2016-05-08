@@ -161,7 +161,9 @@ def main():
     opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
     urllib2.install_opener(opener)
     print('[*] 正在登陆豆瓣')
-    loginDouban("zhangfan106975@pwrd.com","zf7717118")
+    email = raw_input("[*] 请输入邮箱\n")
+    password = raw_input("[*] 请输入密码\n")
+    loginDouban(email,password)
     listenProcess = multiprocessing.Process(target=listenTopic)
     listenProcess.start()
 
