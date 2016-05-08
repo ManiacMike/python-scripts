@@ -10,6 +10,39 @@ import requests
 import json
 import time
 import random
+from HTMLParser import HTMLParser
+from htmlentitydefs import name2codepoint
+import multiprocessing
+
+class GroupHtmlParser(HTMLParser):
+    def __init__(self):
+        self.processing = False
+        self.currentId = ""
+        self.topicIds = []
+        self.ck = ""
+        HTMLParser.__init__(self)
+
+    def handle_starttag(self, tag, attrs):
+        linkStart = "https://www.douban.com/group/topic/"
+        linkLogoutStart = "https://www.douban.com/accounts/logout"
+        if tag == "a" and len(attrs) > 2 and attrs[0][1][0:len(linkStart)] == linkStart:
+            self.currentId = attrs[0][1][len(linkStart):]
+            self.currentId = self.currentId[0:-1]
+        elif tag == "a" and len(attrs) > 0 and attrs[0][1][0:len(linkLogoutStart)] == linkLogoutStart:
+            self.ck = attrs[0][1][-4:].encode("utf-8")
+        elif tag == "td" and len(attrs) > 1 and attrs[0][1] == "td-reply":
+            self.processing = True
+
+    def handle_endtag(self, tag):
+        pass
+
+    def handle_data(self, data):
+        if self.processing and data[0:1] == "0":
+            # print(self.currentId)
+            self.topicIds.append(self.currentId)
+
+    def get_data(self):
+        return (self.ck, self.topicIds)
 
 def catchKeyboardInterrupt(fn):
 	def wrapper(*args):
@@ -43,6 +76,16 @@ def loginDouban(email,password):
         "form_password" : password
     }
     _post(loginUrl, params)
+
+def postDoubanComment(ck,content,tid):
+    commentUrl = "https://www.douban.com/group/topic/"+tid+"/add_comment"
+    params = {
+        "ck" : ck,
+        "rv_comment" : content,
+		"start" : 0,
+        "submit_btn" : "加上去"
+    }
+    _post(commentUrl, params)
 
 def _transcoding(data):
 	if not data: return data
@@ -85,12 +128,33 @@ def _decode_dict(data):
 	return rv
 
 def randomEmoticon():
-    happy = ("_(┐「ε:)_","_(:3 」∠)_","(￣y▽￣)~*","・゜・(PД`q｡)・゜・","(ง •̀_•́)ง","(•̀ᴗ•́)و ̑̑","ヽ(•̀ω•́ )ゝ","(,,• ₃ •,,)","(｡˘•ε•˘｡)","(=ﾟωﾟ)ﾉ","\(○’ω’○)","(´・ω・`)","ヽ(･ω･｡)ﾉ","(。-`ω´-)","(´・ω・`)","(´・ω・)ﾉ","\(ﾉ･ω･)","  (♥ó㉨ò)ﾉ♡","(ó㉨ò)","・㉨・","( ・◇・)？","ヽ(*´Д｀*)ﾉ","\(´°̥̥̥̥̥̥̥̥ω°̥̥̥̥̥̥̥̥｀)","(╭￣3￣)╭♡","(☆ﾟ∀ﾟ)","⁄(⁄ ⁄•⁄ω⁄•⁄ ⁄)⁄.","(´-ι_-｀)","ಠ౪ಠ","ಥ_ಥ","(/≥▽≤/)","ヾ(o◕∀◕)ﾉ ヾ(o◕∀◕)ﾉ ヾ(o◕∀◕)ﾉ","\*★,°*:.☆\(￣▽￣)/$:*.°★*","ヾ (o ° ω ° O ) ノ゙","╰(*°▽°*)╯ "," (｡◕ˇ∀ˇ◕）","o(*≧▽≦)ツ","≖‿≖✧",">ㅂ<","ˋ▽ˊ","\(•ㅂ•)/♥","✪ε✪","✪υ✪","✪ω✪","눈_눈",",,Ծ‸Ծ,,","π__π","（/TДT)/","ʅ（´◔౪◔）ʃ","(｡☉౪ ⊙｡)","o(*≧▽≦)ツ┏━┓拍桌狂笑"," (●'◡'●)ﾉ♥","<(▰˘◡˘▰)>","｡◕‿◕｡","(｡・`ω´･)","(♥◠‿◠)ﾉ","ʅ(‾◡◝) "," (≖ ‿ ≖)✧","（´∀｀*)","（＾∀＾）","(o^∇^o)ﾉ","ヾ(=^▽^=)ノ","(*￣∇￣*)"," (*´∇｀*)","(*ﾟ▽ﾟ*)","(｡･ω･)ﾉﾞ","(≡ω≡．)","(｀･ω･´)","(´･ω･｀)","(●´ω｀●)φ)")
-    if int(random.random() * 1000)%5 == 0:
-        index = (int(random.random() * 1000))%len(happy)
-        return happy[index]
-    else:
-		return False
+    happy = ("_(┐「ε:)_","_(:3 」∠)_","(￣y▽￣)~*","・゜・(PД`q｡)・゜・","(ง •̀_•́)ง",
+    "(•̀ᴗ•́)و ̑̑","ヽ(•̀ω•́ )ゝ","(,,• ₃ •,,)","(｡˘•ε•˘｡)","(=ﾟωﾟ)ﾉ","\(○’ω’○)","(´・ω・`)",
+    "ヽ(･ω･｡)ﾉ","(。-`ω´-)","(´・ω・`)","(´・ω・)ﾉ","\(ﾉ･ω･)","  (♥ó㉨ò)ﾉ♡","(ó㉨ò)",
+    "・㉨・","( ・◇・)？","ヽ(*´Д｀*)ﾉ","⁄(⁄ ⁄•⁄ω⁄•⁄ ⁄)⁄.","(´-ι_-｀)","ಠ౪ಠ","ಥ_ಥ",
+    "(/≥▽≤/)","ヾ(o◕∀◕)ﾉ ヾ(o◕∀◕)ﾉ ヾ(o◕∀◕)ﾉ","\*★,°*:.☆\(￣▽￣)/$:*.°★*",
+    "ヾ (o ° ω ° O ) ノ゙","╰(*°▽°*)╯ "," (｡◕ˇ∀ˇ◕）","o(*≧▽≦)ツ","≖‿≖✧",">ㅂ<","ˋ▽ˊ",
+    "\(•ㅂ•)/♥","✪ε✪","✪υ✪","✪ω✪","눈_눈",",,Ծ‸Ծ,,","π__π","（/TДT)/","ʅ（´◔౪◔）ʃ","(｡☉౪ ⊙｡)",
+    "o(*≧▽≦)ツ┏━┓拍桌狂笑"," (●'◡'●)ﾉ♥","<(▰˘◡˘▰)>","｡◕‿◕｡","(｡・`ω´･)","(♥◠‿◠)ﾉ","ʅ(‾◡◝) ",
+    " (≖ ‿ ≖)✧","（´∀｀*)","（＾∀＾）","(o^∇^o)ﾉ","ヾ(=^▽^=)ノ","(*￣∇￣*)"," (*´∇｀*)","(*ﾟ▽ﾟ*)",
+    "(｡･ω･)ﾉﾞ","(≡ω≡．)","(｀･ω･´)","(´･ω･｀)","(●´ω｀●)φ)")
+    index = (int(random.random() * 1000))%len(happy)
+    return happy[index]
+
+def listenTopic():
+	print '[*] 进入监听模式 ... 成功'
+	while True:
+		topicHtmlParser = GroupHtmlParser()
+		html = _get("https://www.douban.com/group/")
+		topicHtmlParser.feed(html)
+		ck = topicHtmlParser.ck
+		topicIds = topicHtmlParser.topicIds
+		for topicId in topicIds:
+			print(topicId)
+			content = randomEmoticon()
+			postDoubanComment(ck,content,topicId)
+			time.sleep(1)
+		time.sleep(10)
 
 @catchKeyboardInterrupt
 def main():
@@ -98,15 +162,18 @@ def main():
     urllib2.install_opener(opener)
     print('[*] 正在登陆豆瓣')
     loginDouban("zhangfan106975@pwrd.com","zf7717118")
+    listenProcess = multiprocessing.Process(target=listenTopic)
+    listenProcess.start()
+
     while True:
         text = raw_input('')
         if text == 'quit':
+            listenProcess.terminate()
             print('[*] 退出程序')
             exit()
         elif text[:4] == 'http':
             html = _get(text)
             print(html)
-
 
 if sys.stdout.encoding == 'cp936':
 	sys.stdout = UnicodeStreamFilter(sys.stdout)
