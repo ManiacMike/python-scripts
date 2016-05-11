@@ -16,6 +16,9 @@ from HTMLParser import HTMLParser
 from htmlentitydefs import name2codepoint
 import multiprocessing
 
+reload(sys)
+sys.setdefaultencoding('utf8')
+
 class GroupHtmlParser(HTMLParser):
     def __init__(self):
         self.processing = False
@@ -31,7 +34,7 @@ class GroupHtmlParser(HTMLParser):
             self.currentId = attrs[0][1][len(linkStart):]
             self.currentId = self.currentId[0:-1]
         elif tag == "a" and len(attrs) > 0 and attrs[0][1][0:len(linkLogoutStart)] == linkLogoutStart:
-            self.ck = attrs[0][1][-4:].encode("utf-8")
+            self.ck = attrs[0][1][-4:]
         elif tag == "td" and len(attrs) > 1 and attrs[0][1] == "td-reply":
             self.processing = True
 
