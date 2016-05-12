@@ -16,8 +16,6 @@ from HTMLParser import HTMLParser
 from htmlentitydefs import name2codepoint
 import multiprocessing
 
-reload(sys)
-sys.setdefaultencoding('utf8')
 
 class GroupHtmlParser(HTMLParser):
     def __init__(self):
@@ -170,6 +168,11 @@ def listenTopic():
 
 @catchKeyboardInterrupt
 def main():
+    reload(sys)
+    sys.setdefaultencoding('utf8')
+    if sys.stdout.encoding == 'cp936':
+    	sys.stdout = UnicodeStreamFilter(sys.stdout)
+
     opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
     urllib2.install_opener(opener)
     print('[*] 正在登陆豆瓣')
@@ -193,9 +196,6 @@ def main():
         elif text[:4] == 'http':
             html = _get(text)
             print(html)
-
-if sys.stdout.encoding == 'cp936':
-	sys.stdout = UnicodeStreamFilter(sys.stdout)
 
 if __name__ == '__main__':
     main()
