@@ -35,6 +35,8 @@ class GroupHtmlParser(HTMLParser):
             self.ck = attrs[0][1][-4:]
         elif tag == "td" and len(attrs) > 1 and attrs[0][1] == "td-reply":
             self.processing = True
+        else:
+            self.processing = False
 
     def handle_endtag(self, tag):
         pass
