@@ -17,6 +17,8 @@ from htmlentitydefs import name2codepoint
 import multiprocessing
 
 
+DEBUG = True
+
 class GroupHtmlParser(HTMLParser):
     def __init__(self):
         self.processing = False
@@ -32,7 +34,10 @@ class GroupHtmlParser(HTMLParser):
             self.currentId = attrs[0][1][len(linkStart):]
             self.currentId = self.currentId[0:-1]
         elif tag == "a" and len(attrs) > 0 and attrs[0][1][0:len(linkLogoutStart)] == linkLogoutStart:
-            self.ck = attrs[0][1][-4:]
+            self.ck = _getStrIfUnicode(attrs[0][1])
+            self.ck = self.ck[-4:]
+            if DEBUG:
+                print self.ck
         elif tag == "td" and len(attrs) > 1 and attrs[0][1] == "td-reply":
             self.processing = True
         else:
@@ -48,6 +53,21 @@ class GroupHtmlParser(HTMLParser):
 
     def get_data(self):
         return (self.ck, self.topicIds)
+
+class IndexHtmlParser(HTMLParser):
+    def __init__(self):
+        self.captcha = ""
+        HTMLParser.__init__(self)
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "img" and len(attrs) > 4 and attrs[0][1] == "captcha_image":
+            self.captcha = attrs[1][1]
+
+    def handle_endtag(self, tag):
+        pass
+
+    def handle_data(self, data):
+        pass
 
 def catchKeyboardInterrupt(fn):
 	def wrapper(*args):
@@ -73,6 +93,22 @@ class UnicodeStreamFilter:
 	def flush(self):
 		self.target.flush()
 
+def getLoginCapthca():
+    indexUrl = "https://www.douban.com"
+    indexHtmlParser = IndexHtmlParser()
+    html = _get(indexUrl)
+    indexHtmlParser.feed(html)
+    c = _getStrIfUnicode(indexHtmlParser.captcha)
+    return c
+
+def _getStrIfUnicode(s):
+    c = ""
+    if isinstance(s,unicode):
+        c = s.encode("utf-8")
+    else:
+        c = s
+    return c
+
 def loginDouban(email,password):
     loginUrl = "https://www.douban.com/accounts/login"
     params = {
@@ -80,6 +116,19 @@ def loginDouban(email,password):
         "form_email" : email,
         "form_password" : password
     }
+    _post(loginUrl, params)
+
+def loginDoubanWithCaptcha(email,password,captchaId,captchaSolution):
+    loginUrl = "https://www.douban.com/accounts/login"
+    params = {
+        "source" : "index_nav",
+        "form_email" : email,
+        "form_password" : password,
+        "captcha-solution" : captchaSolution,
+        "captcha-id" : captchaId
+    }
+    if DEBUG:
+        print(params)
     _post(loginUrl, params)
 
 def postDoubanComment(ck,content,tid):
@@ -180,7 +229,14 @@ def main():
     print('[*] 正在登陆豆瓣')
     email = raw_input("[*] 请输入邮箱\n")
     password = raw_input("[*] 请输入密码\n")
-    loginDouban(email,password)
+    captcha = ""
+    captchaImg = getLoginCapthca()
+    if captchaImg != "":
+        captcha = raw_input("[*] 请打开并输入验证码\n"+captchaImg+"\n")
+        captchaId = captchaImg[39:-7]
+        loginDoubanWithCaptcha(email,password,captchaId,captcha)
+    else:
+        loginDoubanWi(email,password)
     if testLogin() == True:
         print('[*] 登陆成功')
     else:
