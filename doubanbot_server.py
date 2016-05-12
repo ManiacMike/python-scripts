@@ -17,6 +17,8 @@ from HTMLParser import HTMLParser
 from htmlentitydefs import name2codepoint
 
 
+DEBUG = True
+
 class GroupHtmlParser(HTMLParser):
     def __init__(self):
         self.processing = False
@@ -49,6 +51,20 @@ class GroupHtmlParser(HTMLParser):
     def get_data(self):
         return (self.ck, self.topicIds)
 
+class IndexHtmlParser(HTMLParser):
+    def __init__(self):
+        self.captcha = ""
+        HTMLParser.__init__(self)
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "img" and len(attrs) > 4 and attrs[0][1] == "captcha_image":
+            self.captcha = attrs[1][1]
+
+    def handle_endtag(self, tag):
+        pass
+
+    def handle_data(self, data):
+        pass
 
 class UnicodeStreamFilter:
 	def __init__(self, target):
@@ -66,6 +82,21 @@ class UnicodeStreamFilter:
 	def flush(self):
 		self.target.flush()
 
+def getLoginCapthca():
+    indexUrl = "https://www.douban.com"
+    indexHtmlParser = IndexHtmlParser()
+    html = _get(indexUrl)
+    indexHtmlParser.feed(html)
+    c = _getStrIfUnicode(indexHtmlParser.captcha)
+    return c
+
+def _getStrIfUnicode(s):
+    c = ""
+    if isinstance(s,unicode):
+        c = s.encode("utf-8")
+    else:
+        c = s
+    return c
 def loginDouban(email,password):
     loginUrl = "https://www.douban.com/accounts/login"
     params = {
@@ -73,6 +104,19 @@ def loginDouban(email,password):
         "form_email" : email,
         "form_password" : password
     }
+    _post(loginUrl, params)
+
+def loginDoubanWithCaptcha(email,password,captchaId,captchaSolution):
+    loginUrl = "https://www.douban.com/accounts/login"
+    params = {
+        "source" : "index_nav",
+        "form_email" : email,
+        "form_password" : password,
+        "captcha-solution" : captchaSolution,
+        "captcha-id" : captchaId
+    }
+    if DEBUG:
+        print(params)
     _post(loginUrl, params)
 
 def postDoubanComment(ck,content,tid):
@@ -161,6 +205,22 @@ def listenTopic():
 			time.sleep(1)
 		time.sleep(10)
 
+def getCaptchaSolution():
+    t = 0
+    all_the_text = ""
+    while True:
+        if t > 60:
+            exit()
+        file_object = open('captcha.txt')
+        try:
+            all_the_text = file_object.read( )
+        finally:
+            file_object.close( )
+        if all_the_text != "":
+            return all_the_text.strip()
+        t = t+1
+        time.sleep(1)
+
 def main():
     if sys.stdout.encoding == 'cp936':
     	sys.stdout = UnicodeStreamFilter(sys.stdout)
@@ -177,6 +237,16 @@ def main():
             password = value
     reload(sys)
     sys.setdefaultencoding('utf8')
+    captcha = ""
+    captchaImg = getLoginCapthca()
+    if captchaImg != "":
+        print(captchaImg)
+        captcha = getCaptchaSolution()
+        captchaId = captchaImg[39:-7]
+        loginDoubanWithCaptcha(email,password,captchaId,captcha)
+    else:
+        loginDoubanWi(email,password)
+
     loginDouban(email,password)
     if testLogin() == True:
         print('[*] 登陆成功')

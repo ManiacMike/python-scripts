@@ -17,7 +17,7 @@ from htmlentitydefs import name2codepoint
 import multiprocessing
 
 
-DEBUG = True
+DEBUG = False
 
 class GroupHtmlParser(HTMLParser):
     def __init__(self):
