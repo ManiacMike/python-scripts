@@ -221,6 +221,11 @@ def getCaptchaSolution():
         t = t+1
         time.sleep(1)
 
+def writeCaptchaImgUrl(data):
+    file_object = open('captcha_img.txt', 'w')
+    file_object.write(data)
+    file_object.close( )
+
 def main():
     if sys.stdout.encoding == 'cp936':
     	sys.stdout = UnicodeStreamFilter(sys.stdout)
@@ -240,7 +245,7 @@ def main():
     captcha = ""
     captchaImg = getLoginCapthca()
     if captchaImg != "":
-        print(captchaImg)
+        writeCaptchaImgUrl(captchaImg)
         captcha = getCaptchaSolution()
         captchaId = captchaImg[39:-7]
         loginDoubanWithCaptcha(email,password,captchaId,captcha)
