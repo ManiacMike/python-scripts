@@ -236,7 +236,7 @@ def main():
         captchaId = captchaImg[39:-7]
         loginDoubanWithCaptcha(email,password,captchaId,captcha)
     else:
-        loginDoubanWi(email,password)
+        loginDouban(email,password)
     if testLogin() == True:
         print('[*] 登陆成功')
     else:
