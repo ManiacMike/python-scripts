@@ -8,8 +8,10 @@ import requests
 import subprocess
 from HTMLParser import HTMLParser
 
+DEBUG = True
 AV_WEBSITE = "https://avmo.pw"
 DUMP_DIR = "/Users/Mike/Downloads/_tmp"
+NAMED_COVER = "python_cover.jpg"
 
 class SearchHtmlParser(HTMLParser):
     def __init__(self):
@@ -109,8 +111,9 @@ def _getMovieId(name):
     return a
 
 def _downloadImg(src,filename):
-    print(src)
-    print(filename)
+    if DEBUG == True:
+        print("[*]" + src + "\n")
+        print("[*]" + filename + "\n")
     subprocess.call("image_downloader -f=\"" + filename + "\" -u=\""+src+"\"",shell=True)
     # data = urllib.urlopen(src).read()
     # f = file(filename,"wb")
@@ -145,32 +148,42 @@ def main():
             fullFile = targetDir + os.path.sep + filename
             #清理原文件
             if os.path.isdir(fullFile) == True and fullFile != DUMP_DIR and filename[0:1] != ".":
+                # print("[*]处理 "+filename + "\n")
                 innerListfile = os.listdir(fullFile)
+                haveCover = False
                 for innerFile in innerListfile:
                     (shortname,fileExt) = _getFileNameAndExt(innerFile)
                     #隐藏文件和下载中的文件
                     if innerFile[0:1] == "." or fileExt[1:10] == "115chrome" or fileExt == '.cfg':
                         pass
                     elif fileExt in videoType:
-                        pass
+                        print("重命名 "+ fullFile + "/" + innerFile +"|"+ fullFile + "/python_video" + fileExt)
+                        os.rename(fullFile + "/" + innerFile,fullFile + "/python_video" + fileExt)
+                    elif innerFile == NAMED_COVER:
+                        haveCover = True
+                        continue
                     else:
-                        print("[*]处理非视频文件 " + innerFile)
+                        print("[*]删除 " + innerFile + "\n")
                         shutil.move(fullFile + os.path.sep + innerFile, DUMP_DIR + os.path.sep  + innerFile)
-                #下载封面
-                (imageSrc,actors) = getCoverUrlById(mid);
-                if imageSrc != "":
-                    _downloadImg(imageSrc,fullFile + os.path.sep + "cover.jpg")
-                #修改文件名
-                if nameActor == "" and actors != []:
-                    print("rename "+ fullFile + " " + ",".join(nameActor))
-                    # os.rename(fullFile,fullFile + " " + ",".join(s))
+                if haveCover == False:
+                    print("[*]"+filename+"")
+                    #下载封面
+                    (imageSrc,actors) = getCoverUrlById(mid);
+                    if imageSrc != "":
+                        _downloadImg(imageSrc,fullFile + os.path.sep + NAMED_COVER)
+                    else:
+                        print("[*]"+mid+" 未找到番号")
+                    #修改文件名
+                    if nameActor == "" and actors != []:
+                        print("重命名 "+ fullFile + " " + ",".join(actors))
+                        os.rename(fullFile,fullFile + " " + ",".join(actors))
             else:
                 pass
     else:
         print('[*]未找到目录，退出程序\n')
         exit()
 
-    # print(getCoverUrlById("BF-366"))
+    # print(getCoverUrlById("ABP-234"))
 
 
 if __name__ == '__main__':
