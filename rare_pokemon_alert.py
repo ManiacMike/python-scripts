@@ -21,8 +21,10 @@ targetPokemon =  {3:'妙蛙花',4:'小火龙',5:'火恐龙',6:'喷火龙',9:'水
 76:'石头人',83:'大葱鸭',94:'耿鬼',103:'椰蛋树',105:'嘎拉嘎拉',115:'袋兽',131:'拉普拉斯',
 65:'胡地',143:'卡比兽',149:'快龙'}
 DEBUG = False
+CALLTIMES = 0
 
-targetPokemon[16] = "波波"
+#targetPokemon[16] = "波波"
+
 
 def catchKeyboardInterrupt(fn):
 	def wrapper(*args):
@@ -75,7 +77,7 @@ def _decode_dict(data):
 	return rv
 
 def _get(url):
-	cmd = ''' curl %s  2>/dev/null ''' % (url)
+	cmd = ''' curl –connect-timeout 3 %s  2>/dev/null ''' % (url)
 	result = commands.getoutput(cmd)
 	try:
 		result = json.loads(result, object_hook=_decode_dict)
@@ -91,7 +93,8 @@ def getNextPosition(position):
     if newLon > longitudeRange[1]:#换行
         newLat = lat - step
         if newLat < latitudeRange[1]:
-            print("Scan over,restart")
+            print("Scan over,restart ",CALLTIMES)
+			CALLTIMES = 0
             return (latitudeRange[0],longitudeRange[0]) #返回初始点
         else:
             return (newLat,longitudeRange[0])
@@ -107,10 +110,11 @@ def clearExpiriedPokemon(pokemonList):
     return pokemonList
 
 def formatTime(timestamp):
-    return time.strftime('%H:%I:%S',time.localtime(timestamp))
+    return time.strftime('%H:%M:%S',time.localtime(timestamp))
 
 @catchKeyboardInterrupt
 def main():
+    global CALLTIMES
     reload(sys)
     sys.setdefaultencoding('utf8')
     if sys.stdout.encoding == 'cp936':
@@ -121,8 +125,7 @@ def main():
     position = (latitudeRange[0],longitudeRange[0])
     findedPokemon = {}
 
-    i = 0
-    while(i<10000):
+    while(CALLTIMES < 10000):
         url = "https://pokevision.com/map/data/%s/%s" % (position[0], position[1])
         # print(url)
         data = _get(url)
@@ -136,11 +139,11 @@ def main():
                     pass
         else:
             pass
-        if DEBUG == True:
+        if DEBUG == True and data["status"] == "success":
             print(position,len(data["pokemon"]))
         findedPokemon = clearExpiriedPokemon(findedPokemon)
         position = getNextPosition(position)
-        i += 1
+        CALLTIMES += 1
 
 
 if __name__ == '__main__':
