@@ -8,3 +8,7 @@
 ##doubanbot.py
 
 豆瓣小组抢沙发机器人
+
+
+##rate_pokemon_alert.py
+pokemon go游戏脚本。扫描特定经纬度的特定种类的pokemon，语音提醒
