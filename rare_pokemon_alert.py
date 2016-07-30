@@ -8,6 +8,7 @@ import requests
 import json
 # import ssl
 import time
+import subprocess
 # import requests.packages.urllib3.util.ssl_
 # requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS = 'ALL'
 
@@ -78,7 +79,8 @@ def _decode_dict(data):
 
 def _get(url):
 	cmd = ''' curl –connect-timeout 3 %s  2>/dev/null ''' % (url)
-	result = commands.getoutput(cmd)
+	# result = commands.getoutput(cmd)
+	result = subprocess.check_output(cmd ,shell=True)
 	try:
 		result = json.loads(result, object_hook=_decode_dict)
 		return result
@@ -87,64 +89,69 @@ def _get(url):
 
 
 def getNextPosition(position):
-    lat = position[0]
-    lon = position[1]
-    newLon = lon + step
-    if newLon > longitudeRange[1]:#换行
-        newLat = lat - step
-        if newLat < latitudeRange[1]:
-            print("Scan over,restart ",CALLTIMES)
+	global CALLTIMES
+	lat = position[0]
+	lon = position[1]
+	newLon = lon + step
+	if newLon > longitudeRange[1]:#换行
+		newLat = lat - step
+		if newLat < latitudeRange[1]:
+			print("Scan over,restart ",CALLTIMES)
 			CALLTIMES = 0
-            return (latitudeRange[0],longitudeRange[0]) #返回初始点
-        else:
-            return (newLat,longitudeRange[0])
-    else:
-        return (lat,newLon)
+			return (latitudeRange[0],longitudeRange[0]) #返回初始点
+		else:
+			return (newLat,longitudeRange[0])
+	else:
+		return (lat,newLon)
 
 def clearExpiriedPokemon(pokemonList):
-    for key, pokemon in pokemonList.items():
-        if int(time.time()) > pokemon['expiration_time']:
-            del pokemonList[key]
-        else:
-            pass
-    return pokemonList
+	for key, pokemon in pokemonList.items():
+		if int(time.time()) > pokemon['expiration_time']:
+			del pokemonList[key]
+		else:
+			pass
+	return pokemonList
 
 def formatTime(timestamp):
-    return time.strftime('%H:%M:%S',time.localtime(timestamp))
+	return time.strftime('%H:%M:%S',time.localtime(timestamp))
+
+def getPokemonKey(pokemon):
+	return "%s,%s|%s" % (pokemon["latitude"],pokemon["longitude"],pokemon["pokemonId"])
 
 @catchKeyboardInterrupt
 def main():
-    global CALLTIMES
-    reload(sys)
-    sys.setdefaultencoding('utf8')
-    if sys.stdout.encoding == 'cp936':
-    	sys.stdout = UnicodeStreamFilter(sys.stdout)
-    # opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
-    # urllib2.install_opener(opener)
+	global CALLTIMES
+	reload(sys)
+	sys.setdefaultencoding('utf8')
+	if sys.stdout.encoding == 'cp936':
+		sys.stdout = UnicodeStreamFilter(sys.stdout)
+	# opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+	# urllib2.install_opener(opener)
 
-    position = (latitudeRange[0],longitudeRange[0])
-    findedPokemon = {}
+	position = (latitudeRange[0],longitudeRange[0])
+	findedPokemon = {}
 
-    while(CALLTIMES < 10000):
-        url = "https://pokevision.com/map/data/%s/%s" % (position[0], position[1])
-        # print(url)
-        data = _get(url)
-        if data["status"] == "success" and len(data["pokemon"]) > 0:
-            for pokemon in data["pokemon"]:
-                ifName = targetPokemon.get(pokemon["pokemonId"])
-                if ifName != None and findedPokemon.get(pokemon['id']) == None:#目标pokemon且没有找到过
-                    findedPokemon[pokemon['id']] = pokemon
-                    print("找到了 %s,位置%s,%s, 消失时间 %s" % (ifName,pokemon["latitude"],pokemon["longitude"],formatTime(pokemon["expiration_time"])))
-                else:
-                    pass
-        else:
-            pass
-        if DEBUG == True and data["status"] == "success":
-            print(position,len(data["pokemon"]))
-        findedPokemon = clearExpiriedPokemon(findedPokemon)
-        position = getNextPosition(position)
-        CALLTIMES += 1
+	while(CALLTIMES < 10000):
+		url = "https://pokevision.com/map/data/%s/%s" % (position[0], position[1])
+		# print(url)
+		data = _get(url)
+		if data["status"] == "success" and len(data["pokemon"]) > 0:
+			for pokemon in data["pokemon"]:
+				ifName = targetPokemon.get(pokemon["pokemonId"])
+				if ifName != None and findedPokemon.get(getPokemonKey(pokemon)) == None:#目标pokemon且没有找到过
+					findedPokemon[getPokemonKey(pokemon)] = pokemon
+					subprocess.call("say 找到了 %s" % ifName,shell=True)
+					print("找到了 %s,位置%s,%s, 消失时间 %s" % (ifName,pokemon["latitude"],pokemon["longitude"],formatTime(pokemon["expiration_time"])))
+				else:
+					pass
+		else:
+			pass
+		if DEBUG == True and data["status"] == "success":
+			print(position,len(data["pokemon"]))
+		findedPokemon = clearExpiriedPokemon(findedPokemon)
+		position = getNextPosition(position)
+		CALLTIMES += 1
 
 
 if __name__ == '__main__':
-    main()
+	main()
