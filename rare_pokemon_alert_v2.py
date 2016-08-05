@@ -6,7 +6,7 @@ import json
 import time
 import subprocess
 
-internal_api = "####"
+internal_api = "http://188.166.214.158/pokemon.php"
 
 def catchKeyboardInterrupt(fn):
 	def wrapper(*args):
@@ -73,7 +73,7 @@ def main():
         data = _get(internal_api, True)
         if data["status"] == "success" and len(data["pokemons"]) > 0:
             for pokemon in data["pokemons"]:
-                print("找到了 %s,位置%s,%s, 消失时间 %s" % (pokemon['pokemon_name_cn'],pokemon["latitude"],pokemon["longitude"],formatTime(pokemon["disappear_time"])))
+                print("找到了 %s,位置%s,%s, 消失时间 %s" % (pokemon['pokemon_name_cn'],pokemon["latitude"],pokemon["longitude"],formatTime(pokemon["disappear_time"]/1000)))
                 subprocess.call("say 找到了 %s" % pokemon['pokemon_name_cn'],shell=True)
         else:
             pass
