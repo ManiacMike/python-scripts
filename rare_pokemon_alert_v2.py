@@ -6,7 +6,7 @@ import json
 import time
 import subprocess
 
-internal_api = "http://188.166.214.158/pokemon.php"
+internal_api = "####"
 
 def catchKeyboardInterrupt(fn):
 	def wrapper(*args):
