@@ -43,7 +43,6 @@ class CurlMonitor:
 @catchKeyboardInterrupt
 def main():
     inputCount = 1
-    # url = "http://shdev04:9400/development_match_making/user_pool/_search?pretty&size=200"
     url = "http://www.baidu.com"
     #获取目录参数
     if len(sys.argv) == 2:
